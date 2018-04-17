@@ -4,13 +4,13 @@ import mathutils
 import math
 
 
-spacing = 0.01
+spacing = 0.0
 print_size = 0.10
 print_thickness = 0.005
 grid_size = 3
 grid_res  = 50
 displace_strength = 0.05
-path_to_image = ""
+path_to_image = "D:\Documents\Blender\\3DVilnius\Data\Images\Vilnius.png"
 
 ##########################################################
 
@@ -54,6 +54,12 @@ def run(origin):
 
     delete_scene_objects()
 
+    try:
+        img = bpy.data.images.load(path_to_image )
+    except:
+        raise NameError("Cannot load image %s" % realpath)
+
+
     scene = bpy.context.scene
     # Create cubes
     i =  0
@@ -91,12 +97,6 @@ def run(origin):
             mat = bpy.data.materials.new(name=("Material_" + str(i)))
             obj.data.materials.append(mat)    
             
-            
-            realpath = "D:\Documents\Blender\\3DVilnius\Data\Images\Vilnius.png"
-            try:
-                img = bpy.data.images.load(realpath)
-            except:
-                raise NameError("Cannot load image %s" % realpath)
          
             # Create image texture from image
             tex = bpy.data.textures.new("Material_" + str(i), 'IMAGE')
@@ -111,31 +111,44 @@ def run(origin):
             top_face = bm.faces[5]
             
             uv_layer = bm.loops.layers.uv.verify()        
-                
-            top_face.loops[0][uv_layer].uv = tuple([0.0, 0.0])
-            top_face.loops[1][uv_layer].uv = tuple([1.0, 0.0])
-            top_face.loops[2][uv_layer].uv = tuple([1.0, 1.0])
-            top_face.loops[3][uv_layer].uv = tuple([0.0, 1.0])
+            
+            
+            step = 1 / grid_size;
+            x0   = xi * step
+            x1   = (xi + 1) * step
+            y0   = yi * step
+            y1   = (yi + 1) * step
+            
+            
+            top_face.loops[0][uv_layer].uv = tuple([x1, y1])
+            top_face.loops[1][uv_layer].uv = tuple([x0, y1])
+            top_face.loops[2][uv_layer].uv = tuple([x0, y0])
+            top_face.loops[3][uv_layer].uv = tuple([x1, y0 ])
             
 
             # Split mesh
             top_face.select = True
+
             selected_edges = [edge for edge in bm.edges if edge.select]
 
             deform_layer = bm.verts.layers.deform.active
             if deform_layer is None: deform_layer = bm.verts.layers.deform.new()
+            
 
             subdivide_output = bmesh.ops.subdivide_edges(bm, edges=selected_edges, cuts=grid_res, use_grid_fill=True)
+                        
+            for vert in subdivide_output["geom_inner"]:    
+                if isinstance(vert, bmesh.types.BMVert):
+                    vert[deform_layer][vertex_group.index] = 1.0
+           
+           for vert in subdivide_output["geom_split"]:    
+                if isinstance(vert, bmesh.types.BMVert):
+                    vert[deform_layer][vertex_group.index] = 0.0 
             
             for edge in selected_edges:
                 for vert in edge.verts:
                     if isinstance(vert, bmesh.types.BMVert):
-                        vert[deform_layer][vertex_group.index] = 1.0
-            
-            for vert in subdivide_output["geom"]:    
-                if isinstance(vert, bmesh.types.BMVert):
-                    vert[deform_layer][vertex_group.index] = 1.0
-                
+                        vert[deform_layer][vertex_group.index] = 0.0
             
                 
             bmesh.update_edit_mesh(mesh) 
@@ -143,7 +156,7 @@ def run(origin):
 
             bm.free()          
             
-            displace = obj.modifiers.new('Displace_' + str(i), 'DISPLACE')
+            displace = obj.modifiers.new('Displace', 'DISPLACE')
             displace.vertex_group = "top_verticies"
             displace.mid_level = 0.0
             displace.texture_coords = "UV"
@@ -152,6 +165,7 @@ def run(origin):
             displace.texture = tex
             displace.strength  = displace_strength 
             
+            bpy.ops.object.modifier_apply(apply_as='DATA', modifier="Displace")
             
             
     print("Completed succesfully!")
