@@ -8,8 +8,8 @@ spacing = 0.01
 print_size = 0.10
 print_thickness = 0.005
 grid_size = 3
-grid_res  = 10
-displace_strength = 0.3
+grid_res  = 50
+displace_strength = 0.05
 path_to_image = ""
 
 ##########################################################
@@ -30,9 +30,22 @@ def delete_scene_objects(scene=None):
     # Remove objects.
     for object_ in scene.objects:
         bpy.data.objects.remove(object_, True)
-    #
-    # Remove scene.
-    # bpy.data.scenes.remove(scene, True)
+
+    for block in bpy.data.meshes:
+        if block.users == 0:
+            bpy.data.meshes.remove(block)
+
+    for block in bpy.data.materials:
+        if block.users == 0:
+            bpy.data.materials.remove(block)
+
+    for block in bpy.data.textures:
+        if block.users == 0:
+            bpy.data.textures.remove(block)
+
+    for block in bpy.data.images:
+        if block.users == 0:
+            bpy.data.images.remove(block)
 
 ##########################################################
 
@@ -49,19 +62,18 @@ def run(origin):
         for yi in range(0, grid_size):
             i = i + 1
             print("Making block " + str(i))
-
-            
+    
         
             # Create an empty mesh and the object.
             mesh = bpy.data.meshes.new('Mesh_' + str(i))
             obj  = bpy.data.objects.new('Mesh_' + str(i), mesh)
-
+            
             # Add the object into the scene.
             scene.objects.link(obj)
             scene.objects.active = obj
             obj.select = True
             
-            # Cread cube mesh
+            # Create cube mesh
             bm = bmesh.new()
             bmesh.ops.create_cube(bm, size=1.0)
             
@@ -71,7 +83,7 @@ def run(origin):
             
             bmesh.ops.scale(bm, vec = mathutils.Vector((print_size, print_size, print_thickness)), verts=bm.verts)
             bmesh.ops.translate(bm, vec = mathutils.Vector((x_pos, y_pos, 0.0)), verts=bm.verts)
-            
+                        
             bm.to_mesh(mesh)
             bm.free()
             
@@ -96,13 +108,18 @@ def run(origin):
             
             bm = bmesh.from_edit_mesh(mesh)
             bm.faces.ensure_lookup_table() 
-            top_face = bm.faces[5]        
-            top_face.select = True    
+            top_face = bm.faces[5]
             
-            # Assgin Material
-            bpy.ops.object.material_slot_assign()
+            uv_layer = bm.loops.layers.uv.verify()        
+                
+            top_face.loops[0][uv_layer].uv = tuple([0.0, 0.0])
+            top_face.loops[1][uv_layer].uv = tuple([1.0, 0.0])
+            top_face.loops[2][uv_layer].uv = tuple([1.0, 1.0])
+            top_face.loops[3][uv_layer].uv = tuple([0.0, 1.0])
             
+
             # Split mesh
+            top_face.select = True
             selected_edges = [edge for edge in bm.edges if edge.select]
 
             deform_layer = bm.verts.layers.deform.active
@@ -110,9 +127,13 @@ def run(origin):
 
             subdivide_output = bmesh.ops.subdivide_edges(bm, edges=selected_edges, cuts=grid_res, use_grid_fill=True)
             
-            for vert in subdivide_output["geom_inner"]:    
+            for edge in selected_edges:
+                for vert in edge.verts:
+                    if isinstance(vert, bmesh.types.BMVert):
+                        vert[deform_layer][vertex_group.index] = 1.0
+            
+            for vert in subdivide_output["geom"]:    
                 if isinstance(vert, bmesh.types.BMVert):
-
                     vert[deform_layer][vertex_group.index] = 1.0
                 
             
@@ -124,6 +145,9 @@ def run(origin):
             
             displace = obj.modifiers.new('Displace_' + str(i), 'DISPLACE')
             displace.vertex_group = "top_verticies"
+            displace.mid_level = 0.0
+            displace.texture_coords = "UV"
+            displace.uv_layer = "UVMap"
             displace.direction = "Z"
             displace.texture = tex
             displace.strength  = displace_strength 
