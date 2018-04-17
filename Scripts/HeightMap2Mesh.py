@@ -4,12 +4,12 @@ import mathutils
 import math
 
 
-spacing = 0.0
+spacing = 0.01
 print_size = 0.10
 print_thickness = 0.005
 grid_size = 3
 grid_res  = 50
-displace_strength = 0.05
+displace_strength = 0.06
 path_to_image = "D:\Documents\Blender\\3DVilnius\Data\Images\Vilnius.png"
 
 ##########################################################
@@ -77,18 +77,18 @@ def run(origin):
             # Add the object into the scene.
             scene.objects.link(obj)
             scene.objects.active = obj
+            
             obj.select = True
+            x_pos = xi * print_size + (xi * spacing) - (grid_size * print_size + ((grid_size - 1) * spacing)) / 2
+            y_pos = yi * print_size + (yi * spacing) - (grid_size * print_size + ((grid_size - 1) * spacing)) / 2        
+            bpy.ops.transform.translate(value = (x_pos, y_pos, 0.0))
+            obj.select = False
             
             # Create cube mesh
             bm = bmesh.new()
             bmesh.ops.create_cube(bm, size=1.0)
-            
-            
-            x_pos = xi * print_size + (xi * spacing) - (grid_size * print_size + ((grid_size - 1) * spacing)) / 2
-            y_pos = yi * print_size + (yi * spacing) - (grid_size * print_size + ((grid_size - 1) * spacing)) / 2        
-            
+       
             bmesh.ops.scale(bm, vec = mathutils.Vector((print_size, print_size, print_thickness)), verts=bm.verts)
-            bmesh.ops.translate(bm, vec = mathutils.Vector((x_pos, y_pos, 0.0)), verts=bm.verts)
                         
             bm.to_mesh(mesh)
             bm.free()
@@ -136,22 +136,35 @@ def run(origin):
             
 
             subdivide_output = bmesh.ops.subdivide_edges(bm, edges=selected_edges, cuts=grid_res, use_grid_fill=True)
-                        
+            bm.faces.ensure_lookup_table() 
+            
+            
+            prune_verts  = []
+            adjust_verts = [] 
             for vert in subdivide_output["geom_inner"]:    
-                if isinstance(vert, bmesh.types.BMVert):
+                if isinstance(vert, bmesh.types.BMVert):                    
                     vert[deform_layer][vertex_group.index] = 1.0
+                    adjust_verts.append(vert)
            
-           for vert in subdivide_output["geom_split"]:    
+            for vert in subdivide_output["geom_split"]:    
                 if isinstance(vert, bmesh.types.BMVert):
                     vert[deform_layer][vertex_group.index] = 0.0 
+                    prune_verts.append(vert)
             
             for edge in selected_edges:
                 for vert in edge.verts:
                     if isinstance(vert, bmesh.types.BMVert):
                         vert[deform_layer][vertex_group.index] = 0.0
+                        prune_verts.append(vert)
             
-                
+
+            adjust_verts = list(set(adjust_verts) - set(prune_verts))
+            sf = 1.0 + (2/grid_res)
+            bmesh.ops.scale(bm, vec=mathutils.Vector((sf, sf, 1.0)), verts=adjust_verts)
+            
             bmesh.update_edit_mesh(mesh) 
+            
+            
             bpy.ops.object.mode_set(mode='OBJECT')    
 
             bm.free()          
@@ -166,6 +179,12 @@ def run(origin):
             displace.strength  = displace_strength 
             
             bpy.ops.object.modifier_apply(apply_as='DATA', modifier="Displace")
+            
+            bpy.ops.object.mode_set(mode='EDIT')    
+            
+            bpy.ops.mesh.normals_make_consistent(inside = False)
+            bpy.ops.object.mode_set(mode='OBJECT')  
+            
             
             
     print("Completed succesfully!")
