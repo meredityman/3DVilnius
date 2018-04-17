@@ -7,7 +7,9 @@ import math
 spacing = 0.01
 print_size = 0.10
 print_thickness = 0.005
-grid_size = 2
+grid_size = 3
+grid_res  = 10
+displace_strength = 0.3
 path_to_image = ""
 
 ##########################################################
@@ -48,7 +50,7 @@ def run(origin):
             i = i + 1
             print("Making block " + str(i))
 
-     
+            
         
             # Create an empty mesh and the object.
             mesh = bpy.data.meshes.new('Mesh_' + str(i))
@@ -64,8 +66,8 @@ def run(origin):
             bmesh.ops.create_cube(bm, size=1.0)
             
             
-            x_pos = (2 * xi) * print_size + (xi * spacing) - (grid_size * print_size + ((grid_size - 1) * spacing)) / 2
-            y_pos = (2 * yi) * print_size + (yi * spacing) - (grid_size * print_size + ((grid_size - 1) * spacing)) / 2        
+            x_pos = xi * print_size + (xi * spacing) - (grid_size * print_size + ((grid_size - 1) * spacing)) / 2
+            y_pos = yi * print_size + (yi * spacing) - (grid_size * print_size + ((grid_size - 1) * spacing)) / 2        
             
             bmesh.ops.scale(bm, vec = mathutils.Vector((print_size, print_size, print_thickness)), verts=bm.verts)
             bmesh.ops.translate(bm, vec = mathutils.Vector((x_pos, y_pos, 0.0)), verts=bm.verts)
@@ -87,21 +89,46 @@ def run(origin):
             # Create image texture from image
             tex = bpy.data.textures.new("Material_" + str(i), 'IMAGE')
             tex.image = img              
-                
-            
-            slot = mat.texture_slots.add()
-            slot.texture = tex
             
             # Apply material to face
-            bm = bmesh.new()
-            bm.from_mesh(obj.data)        
+            vertex_group = obj.vertex_groups.new("top_verticies")
+            bpy.ops.object.mode_set(mode = 'EDIT')
             
-
+            bm = bmesh.from_edit_mesh(mesh)
             bm.faces.ensure_lookup_table() 
-            top_face = bm.faces[0]        
-            top_face.select = True
+            top_face = bm.faces[5]        
+            top_face.select = True    
             
-            obj.select = False
+            # Assgin Material
+            bpy.ops.object.material_slot_assign()
+            
+            # Split mesh
+            selected_edges = [edge for edge in bm.edges if edge.select]
+
+            deform_layer = bm.verts.layers.deform.active
+            if deform_layer is None: deform_layer = bm.verts.layers.deform.new()
+
+            subdivide_output = bmesh.ops.subdivide_edges(bm, edges=selected_edges, cuts=grid_res, use_grid_fill=True)
+            
+            for vert in subdivide_output["geom_inner"]:    
+                if isinstance(vert, bmesh.types.BMVert):
+
+                    vert[deform_layer][vertex_group.index] = 1.0
+                
+            
+                
+            bmesh.update_edit_mesh(mesh) 
+            bpy.ops.object.mode_set(mode='OBJECT')    
+
+            bm.free()          
+            
+            displace = obj.modifiers.new('Displace_' + str(i), 'DISPLACE')
+            displace.vertex_group = "top_verticies"
+            displace.direction = "Z"
+            displace.texture = tex
+            displace.strength  = displace_strength 
+            
+            
             
     print("Completed succesfully!")
     return
