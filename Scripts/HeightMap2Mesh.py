@@ -246,14 +246,14 @@ def processArgs():
 		description = 'Run blender in background mode',
 		prog = "blender -b -P "+__file__+" --",
 	)	
-	parser.add_argument('image', action = FullPaths,
+	parser.add_argument('image',  action = FullPaths,
 					help='Path to the heightmap image')
 					
-	parser.add_argument('models', action = FullPaths,
+	parser.add_argument('models',  action = FullPaths,
 					help='Directory in which models will be placed')
 
-	parser.add_argument('--render', action = FullPaths,
-					help='Directory in which renders will be placed')
+	parser.add_argument('--render',  metavar='R', action = FullPaths,
+					help='If set, the script will render a preview to this directory')
 	
 	parser.add_argument('--print_size', type=float, default=10,
 					help='Size of block in cm')
