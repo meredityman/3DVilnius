@@ -1,7 +1,10 @@
-import bpy, sys, os
+import bpy, sys, os, datetime, time
 import bmesh
 import mathutils
 import math
+import argparse
+
+
 
 ##########################################################
 
@@ -15,7 +18,7 @@ def delete_scene_objects(scene=None):
     else:
         if isinstance(scene, str):
             # Specified by name: get the scene object.
-            scene = bpy.data.scenes[scene]
+            scene = bpy.data.scenes[scene]	
         # Otherwise, assume it's a scene object already.
 
     for object_ in scene.objects:
@@ -193,7 +196,7 @@ def renderImage(path_to_render_folder):
     lamp_data = bpy.data.lamps.new(name="Light", type='POINT')
     lamp_object = bpy.data.objects.new(name="Light", object_data=lamp_data)
     scene.objects.link(lamp_object)
-    lamp_object.location = (0.0, 0.0, 0.5)
+    lamp_object.location = (-0.4, 0.0, 0.2)
     
     camera_data = bpy.data.cameras.new(name="Camera")
     camera_object = bpy.data.objects.new(name="Camera", object_data=camera_data)
@@ -202,30 +205,105 @@ def renderImage(path_to_render_folder):
     camera_object.rotation_euler = mathutils.Euler((0.3 * math.pi, 0.0, 0.5 * math.pi), 'XYZ')
                   
     scene.camera = camera_object
+    render_name = 'render_' + str(time.time()) + '.jpg' 
+	
+    target_file = os.path.join(path_to_render_folder,  render_name)
     
     
-    bpy.context.scene.render.filepath = path_to_render_folder + '\\render.jpg'
+    bpy.context.scene.render.filepath = target_file
     bpy.context.scene.render.resolution_x = 1080
     bpy.context.scene.render.resolution_y = 720
     bpy.ops.render.render( write_still=True )      
 
+########################################################## 
+def export(obj, xi, yi, path_to_models_folder):
+    obj.select = True
     
+    if not os.path.exists(path_to_models_folder):
+        os.makedirs(path_to_models_folder)
+	
+    file_name = 'block_' + str(xi) + '_' +str(yi) + '.obj'
+    target_file = os.path.join(path_to_models_folder, file_name )
 
+    bpy.ops.export_scene.obj(   filepath=target_file, 
+                                use_selection=True,
+                                use_triangles=True,
+                                use_materials = False
+                                
+                            )
+    obj.select = False
+
+##########################################################
+def processArgs():
+	argv = sys.argv
+	if "--" not in argv:
+		argv = []
+	else:
+	   argv = argv[argv.index("--") + 1:]
+
+	## set the prog name to match real usage
+	parser = argparse.ArgumentParser(
+		description = 'Run blender in background mode',
+		prog = "blender -b -P "+__file__+" --",
+	)	
+	parser.add_argument('image', action = FullPaths,
+					help='Path to the heightmap image')
+					
+	parser.add_argument('models', action = FullPaths,
+					help='Directory in which models will be placed')
+
+	parser.add_argument('--render', action = FullPaths,
+					help='Directory in which renders will be placed')
+	
+	parser.add_argument('--print_size', type=float, default=10,
+					help='Size of block in cm')
+					
+	parser.add_argument('--print_thickness', type=float, default=0.5,
+					help='Base thickness of block in cm')
+
+	parser.add_argument('--grid_size', type=int, default=3,
+					help='Number of blocks per row/column')
+					
+	parser.add_argument('--grid_res', type=int, default=50,
+					help='Resolution top face on mesh')
+					
+	parser.add_argument('--displace_strength', type=float, default=0.06,
+					help='Displace strength. THis is how height hills will rise abouve the base')
+					
+	try:
+		args = parser.parse_args(argv)
+		print(args)
+				
+		properties = {}		
+		properties['print_size']        = args.print_size / 100		
+		properties['spacing']           = properties['print_size'] * 0.1		
+		properties['print_thickness']   = args.print_thickness / 100
+		properties['grid_size']         = args.grid_size
+		properties['grid_res']          = args.grid_res   
+		properties['displace_strength'] = args.displace_strength
+
+		properties['path_to_image'] = args.image
+		properties['path_to_models_folder'] = args.models
+		properties['path_to_render_folder'] =  args.render
+
+	
+		return properties		
+		
+	except SystemExit as e:
+		exit()
+		
+		
+##########################################################
+class FullPaths(argparse.Action):
+	"""Expand user- and relative-paths"""
+	def __call__(self, parser, namespace, values, option_string=None):
+		setattr(namespace, self.dest, os.path.abspath(os.path.expanduser(values)))
 
 ##########################################################
 
 def run(origin):
-    properties = {}
-    properties['spacing'] = 0.01
-    properties['print_size'] = 0.10
-    properties['print_thickness'] = 0.005
-    properties['grid_size'] = 3
-    properties['grid_res']  = 50    
-    properties['displace_strength'] = 0.06
-    
-    path_to_image = "D:\Documents\Blender\\3DVilnius\Data\Images\Vilnius.png"
-    path_to_render_folder = "D:\Documents\Blender\\3DVilnius\Data\Renders"
-    
+
+    properties = processArgs()
     
     print("Starting...")
 
@@ -233,7 +311,7 @@ def run(origin):
 
     scene = bpy.context.scene
     
-    tex = loadHeightMap(path_to_image)
+    tex = loadHeightMap(properties['path_to_image'])
     
     # Create cubes
     i =  0
@@ -253,9 +331,10 @@ def run(origin):
             cleanUpMesh(obj, mesh)
                         
             # Export 
-            #export(obj)
+            export(obj, xi, yi, properties['path_to_models_folder'])
             
-    renderImage(path_to_render_folder)
+    if(properties['path_to_render_folder']):
+        renderImage(properties['path_to_render_folder'])
     
     print("Completed succesfully!")
     return
@@ -265,4 +344,5 @@ def run(origin):
 
 
 if __name__ == "__main__":
+	
     run((0,0,0))
