@@ -100,6 +100,7 @@ def createCubeMesh(mesh, properties):
 def assignUVs(xi, yi, obj, mesh, properties):
     grid_size  = properties['grid_size']
     grid_res  = properties['grid_res']
+    reverse   = properties['reverse']
     
     bpy.ops.object.mode_set(mode = 'EDIT')
     
@@ -121,12 +122,18 @@ def assignUVs(xi, yi, obj, mesh, properties):
     y0   = yi * step
     y1   = (yi + 1) * step    
     
-    top_face.loops[0][uv_layer].uv = tuple([x1, y1])
-    top_face.loops[1][uv_layer].uv = tuple([x0, y1])
-    top_face.loops[2][uv_layer].uv = tuple([x0, y0])
-    top_face.loops[3][uv_layer].uv = tuple([x1, y0 ])
-    
-
+    if(reverse):
+        top_face.loops[0][uv_layer].uv = tuple([x1, y0])
+        top_face.loops[1][uv_layer].uv = tuple([x0, y0])
+        top_face.loops[2][uv_layer].uv = tuple([x0, y1])
+        top_face.loops[3][uv_layer].uv = tuple([x1, y1 ])
+    else:
+        top_face.loops[0][uv_layer].uv = tuple([x1, y1])
+        top_face.loops[1][uv_layer].uv = tuple([x0, y1])
+        top_face.loops[2][uv_layer].uv = tuple([x0, y0])
+        top_face.loops[3][uv_layer].uv = tuple([x1, y0 ])
+	
+	
     #Subdivide Top face
     top_face.select = True
     selected_edges = [edge for edge in bm.edges if edge.select]
@@ -255,19 +262,22 @@ def processArgs():
 	parser.add_argument('--render',  metavar='R', action = FullPaths,
 					help='If set, the script will render a preview to this directory')
 	
-	parser.add_argument('--print_size', type=float, default=10,
-					help='Size of block in cm')
+	parser.add_argument('--print_size', type=float, default=100,
+					help='Size of block in mm')
 					
-	parser.add_argument('--print_thickness', type=float, default=0.5,
-					help='Base thickness of block in cm')
+	parser.add_argument('--print_thickness', type=float, default=5,
+					help='Base thickness of block in mm')
 
 	parser.add_argument('--grid_size', type=int, default=3,
 					help='Number of blocks per row/column')
 					
-	parser.add_argument('--grid_res', type=int, default=50,
-					help='Resolution top face on mesh')
+	parser.add_argument('--mesh_density', type=float, default=2,
+					help='Roughly the number of faces per mm. This should be set close to the 3D printers resolution')
 					
-	parser.add_argument('--displace_strength', type=float, default=0.06,
+	parser.add_argument('--displace_strength', type=float, default=10.0,
+					help='Displace strength. This is how height hills will rise above the base in mm (I think)')
+					
+	parser.add_argument('--reverse', action='store_true',
 					help='Displace strength. THis is how height hills will rise abouve the base')
 					
 	try:
@@ -275,12 +285,13 @@ def processArgs():
 		print(args)
 				
 		properties = {}		
-		properties['print_size']        = args.print_size / 100		
+		properties['print_size']        = args.print_size / 1000		
 		properties['spacing']           = properties['print_size'] * 0.1		
-		properties['print_thickness']   = args.print_thickness / 100
+		properties['print_thickness']   = args.print_thickness / 1000
 		properties['grid_size']         = args.grid_size
-		properties['grid_res']          = args.grid_res   
-		properties['displace_strength'] = args.displace_strength
+		properties['grid_res']          = int(args.mesh_density * args.print_size)  
+		properties['displace_strength'] = args.displace_strength / 1000
+		properties['reverse']           = args.reverse
 
 		properties['path_to_image'] = args.image
 		properties['path_to_models_folder'] = args.models
