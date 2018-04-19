@@ -278,7 +278,7 @@ def processArgs():
 					help='Displace strength. This is how height hills will rise above the base in mm (I think)')
 					
 	parser.add_argument('--reverse', action='store_true',
-					help='Displace strength. THis is how height hills will rise abouve the base')
+					help='If set, the print will be reflected in the plane')
 					
 	try:
 		args = parser.parse_args(argv)
