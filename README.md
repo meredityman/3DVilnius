@@ -18,7 +18,7 @@ Just clone this repository onto you machines either using the clone button at th
 git clone https://github.com/meredityman/3DVilnius.git
 ```
 
-You should also make sure that blender can be called from the command line. Try typing:
+You should also make sure that blender can be called from the command line.
 
 ```
 blender -v
@@ -37,37 +37,93 @@ blender ..\Blender\Example.blend --python HeightMap2Mesh.py --  ../Data/Images/V
 
 ```
 
-Alternatively you can run the process in the background, without specifying a .blend file.
+Alternatively you can run the process in the background, without specifying a .blend file. Then the programmer with run placing .obj files in the specified directory, in this case /Data/Models
 
 ```
 blender --background --python HeightMap2Mesh.py --  ../Data/Images/Vilnius.png ../Data/Models
 ```
 
+The default output should look something like this.
+
+![Default Output](Data/Renders/Example.png?raw=true "Default Output")
+
 ## Options
 
-You can specify a few options in the command line to control the output. View these like this.
+You can specify a few options in the command line to control the output. You can view these like this.
 
 ```
 blender --background --python HeightMap2Mesh.py --  -h
 ```
 
-## Examples
+### Changing the input image
 
-![Default Output](Data/Renders/Example.png?raw=true "Default Output")
-
-![Density Example](Data/Renders/Example-density.png?raw=true "Density Example")
-
-![Displacement Example](Data/Renders/Example-displacement.png?raw=true "Displacement Example")
-
-![Grid Size Example](Data/Renders/Example-grid.png?raw=true "Grid Size Example")
-
-![Size Example](Data/Renders/Example-size.png?raw=true "Size Example")
-
-![Thickness example](Data/Renders/Example-thickness.png?raw=true "Thickness example")
+```
+blender --background --python HeightMap2Mesh.py --  ../Data/Images/Vilnius-Map.png ../Data/Models
+```
 
 ![Map Example](Data/Renders/Example-Map.png?raw=true "Map Example")
 
+```
+blender --background --python HeightMap2Mesh.py --  ../Data/Images/Vilnius-Roads.png ../Data/Models
+```
+
 ![Roads Example](Data/Renders/Example-Roads.png?raw=true "Roads Example")
+
+### Render an image
+
+```
+blender --background --python HeightMap2Mesh.py --  ../Data/Images/Vilnius.png ../Data/Models --render ../Data/Renders
+```
+
+### Adjust the mesh density
+
+```
+blender --background --python HeightMap2Mesh.py --  ../Data/Images/Vilnius.png ../Data/Models --mesh_density 0.5
+```
+
+![Density Example](Data/Renders/Example-density.png?raw=true "Density Example")
+
+### Adjust displacement
+
+```
+blender --background --python HeightMap2Mesh.py --  ../Data/Images/Vilnius.png ../Data/Models --displace_strength 50
+```
+
+![Displacement Example](Data/Renders/Example-displacement.png?raw=true "Displacement Example")
+
+
+### Adjust the grid
+
+```
+blender --background --python HeightMap2Mesh.py --  ../Data/Images/Vilnius.png ../Data/Models --grid_size 2
+```
+
+![Grid Size Example](Data/Renders/Example-grid.png?raw=true "Grid Size Example")
+
+
+### Adjust the size
+
+```
+blender --background --python HeightMap2Mesh.py --  ../Data/Images/Vilnius.png ../Data/Models --print_size 5
+```
+
+![Size Example](Data/Renders/Example-size.png?raw=true "Size Example")
+
+### Adjust the base thickness
+
+```
+blender --background --python HeightMap2Mesh.py --  ../Data/Images/Vilnius.png ../Data/Models --print_thickness 15
+```
+
+![Thickness example](Data/Renders/Example-thickness.png?raw=true "Thickness example")
+
+
+
+### Reversing the print
+
+```
+blender --background --python HeightMap2Mesh.py --  ../Data/Images/Vilnius-Roads.png ../Data/Models --reverse
+```
 
 ![Reverse Example](Data/Renders/Example-Reverse.png?raw=true "Reverse Example")
 
