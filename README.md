@@ -47,6 +47,10 @@ The default output should look something like this.
 
 ![Default Output](Data/Renders/Example.png?raw=true "Default Output")
 
+### Sourcing Data
+
+The elevation data used in these examples was taken from the [Copernicus Land Monitoring Service - EU-DEM](https://www.eea.europa.eu/data-and-maps/data/copernicus-land-monitoring-service-eu-dem).
+
 ## Options
 
 You can specify a few options in the command line to control the output. You can view these like this.
